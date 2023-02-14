@@ -1,6 +1,5 @@
 
-tmp_filename <- "tmp_active_case.rds"
-saveRDS(NULL,tmp_filename)
+
 
 
 server <- function(input, output, session) {

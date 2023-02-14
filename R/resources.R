@@ -9,3 +9,6 @@ resources$choices$fn_stats <- c(
 )
 
 resources$choices$fn_plot <- c("plotSC" = "plot.scdf", "scplot" = "scplot")
+
+tmp_filename <- "tmp_active_case.rds"
+saveRDS(NULL,tmp_filename)
