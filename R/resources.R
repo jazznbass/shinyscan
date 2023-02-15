@@ -1,6 +1,6 @@
 resources <- list()
 resources$choices <- list()
-resources$choices$examples <- c("input", "loaded", "active", substr(data(package = "scan")$results[,3], 0, nchar(data(package = "scan")$results[,3]) - 12))
+resources$choices$examples <- c("My scdf", substr(data(package = "scan")$results[,3], 0, nchar(data(package = "scan")$results[,3]) - 12))
 
 resources$choices$fn_stats <- c(
   "describe", "overlap", "hplm", "plm", "tau_u", "cdc",

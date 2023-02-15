@@ -11,34 +11,57 @@ server <- function(input, output, session) {
 
   scdf <- reactive({
     out <- NULL
-    if (input$dataset == "input") {
-      out <- try({
-        values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
-        out <- scan::scdf(values, name = input$casename)
-      }, silent = TRUE)
-      if (inherits(out, "try-error")) out <- NULL
-    } else if (input$dataset == "loaded") {
-      out <- upload()
-    } else if (input$dataset == "active") {
+    if (input$dataset == "My scdf") {
       out <- readRDS(tmp_filename)
     } else {
       out <- paste0("scan::",input$dataset) |> str2lang() |> eval()
     }
-
-    if (input$select != "") {
-      args <- paste0("list(", input$select, ")") |> str2lang() |> eval()
-      out <- do.call("select_cases", c(list(out), args))
-    }
-
-    if (input$phase_A != "" && input$phase_B != "") {
-      arg_a <- paste0("c(", input$phase_A, ")") |> str2lang() |> eval()
-      arg_b <- paste0("c(", input$phase_B, ")") |> str2lang() |> eval()
-
-      out <- do.call("select_phases", c(list(out), list(A = arg_a, B = arg_b)))
-    }
     out
   })
 
+  transformed <- reactive({
+    out <- scdf()
+    syntax = "scdf"
+    if (input$select_cases != "") {
+      args <- list(str2lang(input$select_cases))
+      out <- do.call("select_cases", c(list(out), args))
+      syntax <- c(syntax, paste0("select_cases(",input$select_cases,")"))
+
+    }
+
+    if (input$select_phases != "") {
+      args <- paste0("c(", input$select_phases, ")") |> str2lang() |> eval()
+      out <- do.call("select_phases", c(list(out), args))
+      syntax <- c(syntax, paste0("select_phases(c(", input$select_phases, "))"))
+    }
+
+    if (input$subset != "") {
+      args <-  list(str2lang(input$subset))
+      out <- do.call("subset", c(list(out),args))
+      syntax <- c(syntax, paste0("subset(",  input$subset, ")"))
+    }
+
+    if (input$transform != "") {
+      arg <- paste0("transform(out,", trim(input$transform),")")
+      out <- str2lang(arg) |> eval()
+      syntax <- c(
+        syntax, paste0("transform(", gsub("\n", ", ", trim(input$transform)),")")
+      )
+    }
+
+    if (length(syntax)>1) {
+      syntax <- syntax[-1]
+      syntax <- paste0(
+        "scdf %>%\n  ",
+        paste0(syntax, collapse = " %>%\n  ")
+      )
+
+    }
+
+    output$transform_syntax <- renderPrint(cat(syntax))
+
+    out
+  })
 
   observeEvent(input$add_case, {
     new <- try({
@@ -46,20 +69,17 @@ server <- function(input, output, session) {
       scan::scdf(values, name = input$casename)
     }, silent = TRUE)
     if (!inherits(new, "try-error")) {
-      if (input$dataset == "loaded") {
-        updateSelectInput(session, "dataset", selected = "active")
-        old <- readRDS(input$upload$datapath)
-      } else if (input$dataset == "active") {
+      if (input$dataset == "My scdf") {
         old <- readRDS(tmp_filename)
       } else {
         old <- paste0("scan::",input$dataset) |> str2lang() |> eval()
-        updateSelectInput(session, "dataset", selected = "active")
+        updateSelectInput(session, "dataset", selected = "My scdf")
       }
 
       if (!is.null(old)) new <- c(old, new)
       saveRDS(new, tmp_filename)
 
-      output$scdf_html <- renderUI(HTML(export(new)))
+      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
       output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
 
     }
@@ -72,10 +92,10 @@ server <- function(input, output, session) {
       scan::scdf(values, name = input$casename)
     }, silent = TRUE)
     if (!inherits(new, "try-error")) {
-      updateSelectInput(session, "dataset", selected = "active")
+      updateSelectInput(session, "dataset", selected = "My scdf")
       saveRDS(new, tmp_filename)
 
-      output$scdf_html <- renderUI(HTML(export(new)))
+      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
       output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
     }
 
@@ -83,38 +103,60 @@ server <- function(input, output, session) {
 
   observeEvent(input$remove_case, {
 
-    if (input$dataset == "loaded") {
-      updateSelectInput(session, "dataset", selected = "active")
-      new <- readRDS(input$upload$datapath)
-    } else if (input$dataset == "active") {
+    if (input$dataset == "My scdf") {
       new <- readRDS(tmp_filename)
     } else {
       new <- paste0("scan::",input$dataset) |> str2lang() |> eval()
-      updateSelectInput(session, "dataset", selected = "active")
+      updateSelectInput(session, "dataset", selected = "My scdf")
     }
 
     new <- new[-length(new)]
     saveRDS(new, tmp_filename)
-    output$scdf_html <- renderUI(HTML(export(new)))
+    output$scdf_summary <- renderPrint(do.call("summary", list(new)))
     output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
   })
 
 
   output$save <- downloadHandler(
-    filename = function () {
-      paste0("my_scdf", ".rds")
-    },
-    content = function(file) saveRDS(scdf(), file)
+    filename = "my_scdf.rds",
+    content = function(file) saveRDS(transformed(), file)
   )
 
-  output$scdf <- renderPlot({
+  output$plot_scdf <- renderPlot({
     if (input$plot == "scplot") {
-      scplot(scdf())
+      call <- paste0("scplot(transformed())")
+      if (trimws(input$plot_arguments) != "") {
+        call <- paste0(
+          call, "%>% ", gsub("\n", " %>% ", trimws(input$plot_arguments))
+        )
+      }
+
+      str2lang(call) |> eval()
     } else if (input$plot == "plot.scdf") {
-      plot(scdf())
+      call <- paste0(
+        "plot(transformed(), ", trim(input$plot_arguments), ")"
+      )
+      str2lang(call) |> eval()
     }
   })
 
+  output$plot_syntax <- renderPrint({
+    if (input$plot == "scplot") {
+      call <- paste0("scplot(scdf)")
+      if (trimws(input$plot_arguments) != "") {
+        call <- paste0(
+          call, "%>%\n  ", gsub("\n", " %>%\n  ", trimws(input$plot_arguments))
+        )
+      }
+    } else if (input$plot == "plot.scdf") {
+      if (trim(input$plot_arguments) != "") {
+        call <- paste0("plot(scdf, ", trim(input$plot_arguments), ")")
+      } else {
+        call <- "plot(scdf)"
+      }
+    }
+    cat(call)
+  })
 
   output$startupmessage <- renderText({
     paste0(
@@ -122,10 +164,11 @@ server <- function(input, output, session) {
     )
   })
 
+  # stats -----
   output$statistic <- renderPrint({
-    scdf <- scdf()
+    scdf <- transformed()
     call <- paste0(input$func, "(scdf")
-    if (input$func == "") {
+    if (input$args == "") {
       call <- paste0(call, ")")
     } else {
       call <- paste0(call, ",", input$args, ")")
@@ -133,21 +176,55 @@ server <- function(input, output, session) {
     str2lang(call) |> eval()
   })
 
+  output$stats_syntax <- renderPrint({
+    call <- paste0(input$func, "(scdf")
+    if (input$args == "") {
+      call <- paste0(call, ")")
+    } else {
+      call <- paste0(call, ",", input$args, ")")
+    }
+    cat(call)
+  })
+
   output$funcargs <- renderText({
     get_call(input$func)
   })
 
-
+  # scdf ----
   output$scdf_print <- renderPrint({
     if (!is.null(scdf())) print(scdf())
   })
 
-  output$scdf_html <- renderUI({
-    if (!is.null(scdf())) HTML(export(scdf()))
+  #output$scdf_html <- renderUI({
+  #  if (!is.null(scdf())) HTML(export(scdf()))
+  #})
+
+  output$scdf_summary <- renderPrint({
+    do.call("summary", list(scdf()))
   })
 
   output$scdf_syntax <- renderPrint({
     do.call("convert", list(scdf()))
+  })
+
+  output$export_html <- renderUI({
+    scdf <- transformed()
+    call <- paste0(input$func, "(scdf")
+    if (input$func == "") {
+      call <- paste0(call, ")")
+    } else {
+      call <- paste0(call, ",", input$args, ")")
+    }
+    out <- str2lang(call) |> eval()
+    out <- paste0("export(out,", input$exportargs, ")") |>
+      str2lang() |> eval()
+    HTML(out)
+  })
+
+
+  # transform ----
+  output$transform_scdf <- renderPrint({
+    print(transformed(), rows = 100)
   })
 
 
