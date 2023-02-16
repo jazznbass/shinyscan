@@ -4,17 +4,12 @@
 
 server <- function(input, output, session) {
 
-  upload <- reactive({
-    req(input$upload)
-    readRDS(input$upload$datapath)
-  })
-
   scdf <- reactive({
     out <- NULL
-    if (input$dataset == "My scdf") {
+    if (input$datasource == "My scdf") {#if (input$example == "My scdf") {
       out <- readRDS(tmp_filename)
     } else {
-      out <- paste0("scan::",input$dataset) |> str2lang() |> eval()
+      out <- paste0("scan::",input$example) |> str2lang() |> eval()
     }
     out
   })
@@ -63,17 +58,34 @@ server <- function(input, output, session) {
     out
   })
 
+  # upload ------
+  observeEvent(input$upload, {
+    ext <- tools::file_ext(input$upload$datapath)
+    if (ext == "rds") {
+      new <- readRDS(input$upload$datapath)
+      syntax <- paste0("scdf <- read_RDS(\"", input$upload$name, "\")")
+
+    } else {
+      new <- read_scdf(input$upload$datapath)
+      syntax <- paste0("scdf <- read_scdf(\"", input$upload$name, "\")")
+    }
+
+    #output$scdf_upload <- renderText(syntax)
+    saveRDS(new, tmp_filename)
+    updateRadioButtons(session, "datasource", selected = "My scdf")
+  })
+
   observeEvent(input$add_case, {
     new <- try({
       values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
       scan::scdf(values, name = input$casename)
     }, silent = TRUE)
     if (!inherits(new, "try-error")) {
-      if (input$dataset == "My scdf") {
+      if (input$datasource == "My scdf") {
         old <- readRDS(tmp_filename)
       } else {
-        old <- paste0("scan::",input$dataset) |> str2lang() |> eval()
-        updateSelectInput(session, "dataset", selected = "My scdf")
+        old <- paste0("scan::",input$example) |> str2lang() |> eval()
+        updateRadioButtons(session, "datasource", selected = "My scdf")
       }
 
       if (!is.null(old)) new <- c(old, new)
@@ -92,7 +104,7 @@ server <- function(input, output, session) {
       scan::scdf(values, name = input$casename)
     }, silent = TRUE)
     if (!inherits(new, "try-error")) {
-      updateSelectInput(session, "dataset", selected = "My scdf")
+      updateRadioButtons(session, "datasource", selected = "My scdf")
       saveRDS(new, tmp_filename)
 
       output$scdf_summary <- renderPrint(do.call("summary", list(new)))
@@ -103,11 +115,11 @@ server <- function(input, output, session) {
 
   observeEvent(input$remove_case, {
 
-    if (input$dataset == "My scdf") {
+    if (input$datasource == "My scdf") {
       new <- readRDS(tmp_filename)
     } else {
-      new <- paste0("scan::",input$dataset) |> str2lang() |> eval()
-      updateSelectInput(session, "dataset", selected = "My scdf")
+      new <- paste0("scan::",input$example) |> str2lang() |> eval()
+      updateRadioButtons(session, "datasource", selected = "My scdf")
     }
 
     new <- new[-length(new)]
@@ -118,11 +130,22 @@ server <- function(input, output, session) {
 
 
   output$save <- downloadHandler(
-    filename = "my_scdf.rds",
+    filename = function() "my_scdf.rds",
     content = function(file) saveRDS(transformed(), file)
   )
 
-  output$plot_scdf <- renderPlot({
+  # plot -----
+
+  observeEvent(input$plot_help, {
+    if (input$plot == "scplot") {
+      link <- "https://jazznbass.github.io/scplot/reference/index.html"
+    } else if (input$plot == "plot.scdf") {
+      link <- "https://jazznbass.github.io/scan/reference/plot.scdf.html"
+    }
+    browseURL(link)
+  })
+
+  render_plot <- reactive({
     if (input$plot == "scplot") {
       call <- paste0("scplot(transformed())")
       if (trimws(input$plot_arguments) != "") {
@@ -130,7 +153,6 @@ server <- function(input, output, session) {
           call, "%>% ", gsub("\n", " %>% ", trimws(input$plot_arguments))
         )
       }
-
       str2lang(call) |> eval()
     } else if (input$plot == "plot.scdf") {
       call <- paste0(
@@ -138,7 +160,21 @@ server <- function(input, output, session) {
       )
       str2lang(call) |> eval()
     }
+
   })
+
+  output$plot_scdf <- renderPlot({
+    render_plot()
+  })
+
+  output$saveplot <- downloadHandler(
+    filename = function() "my_scan_plot.png",
+    content = function(file) {
+      png(file)
+      render_plot()
+      dev.off()
+    }
+  )
 
   output$plot_syntax <- renderPrint({
     if (input$plot == "scplot") {
@@ -158,30 +194,53 @@ server <- function(input, output, session) {
     cat(call)
   })
 
-  output$startupmessage <- renderText({
-    paste0(
-      "scan ",utils::packageVersion("scan")," (",utils::packageDate('scan'), ")"
-    )
-  })
-
   # stats -----
-  output$statistic <- renderPrint({
+
+  output$stats_html <- renderUI({
     scdf <- transformed()
     call <- paste0(input$func, "(scdf")
-    if (input$args == "") {
+    if (input$stats_arguments == "") {
       call <- paste0(call, ")")
     } else {
-      call <- paste0(call, ",", input$args, ")")
+      call <- paste0(call, ",", input$stats_arguments, ")")
     }
+    print_args <- input$stats_print_arguments
+    if (print_args != "")
+      print_args <- paste0(", ", print_args)
+    call<- paste0("export(", call, print_args, ")")
+    str2lang(call) |> eval() |> HTML()
+  })
+
+  output$stats_text <- renderPrint({
+    scdf <- transformed()
+    first <- paste0(input$func, "(scdf")
+    if (input$stats_arguments == "") {
+      last <- ")"
+    } else {
+      last <- paste0(", ", input$stats_arguments, ")")
+    }
+    call <- paste0(first, last)
+    print_args <- input$stats_print_arguments
+    if ( print_args != "")
+      print_args <- paste0(", ", print_args)
+    call<- paste0("print(", call, print_args, ")")
     str2lang(call) |> eval()
+  })
+
+
+  observeEvent(input$stats_help, {
+    link <- paste0(
+      "https://jazznbass.github.io/scan/reference/", input$func, ".html"
+    )
+    browseURL(link)
   })
 
   output$stats_syntax <- renderPrint({
     call <- paste0(input$func, "(scdf")
-    if (input$args == "") {
+    if (input$stats_arguments == "") {
       call <- paste0(call, ")")
     } else {
-      call <- paste0(call, ",", input$args, ")")
+      call <- paste0(call, ",", input$stats_arguments, ")")
     }
     cat(call)
   })
@@ -191,13 +250,6 @@ server <- function(input, output, session) {
   })
 
   # scdf ----
-  output$scdf_print <- renderPrint({
-    if (!is.null(scdf())) print(scdf())
-  })
-
-  #output$scdf_html <- renderUI({
-  #  if (!is.null(scdf())) HTML(export(scdf()))
-  #})
 
   output$scdf_summary <- renderPrint({
     do.call("summary", list(scdf()))
@@ -207,16 +259,17 @@ server <- function(input, output, session) {
     do.call("convert", list(scdf()))
   })
 
+  # export html ----
   output$export_html <- renderUI({
     scdf <- transformed()
     call <- paste0(input$func, "(scdf")
     if (input$func == "") {
       call <- paste0(call, ")")
     } else {
-      call <- paste0(call, ",", input$args, ")")
+      call <- paste0(call, ",", input$stats_arguments, ")")
     }
     out <- str2lang(call) |> eval()
-    out <- paste0("export(out,", input$exportargs, ")") |>
+    out <- paste0("export(out,", input$export_arguments, ")") |>
       str2lang() |> eval()
     HTML(out)
   })

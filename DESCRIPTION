@@ -1,8 +1,8 @@
 Package: shinyscan
 Type: Package
 Title: Shiny app for scan
-Version: 0.2
-Date: 2023-02-15
+Version: 0.8
+Date: 2023-02-16
 Authors@R:
   person("Juergen", "Wilbert", email = "juergen.wilbert@uni-potsdam.de", 
     role = c("cre", "aut"), comment = c(ORCID = "0000-0002-8392-2873"))
