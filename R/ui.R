@@ -1,4 +1,7 @@
 
+
+## test ----
+
 ## About -----
 
 tab_about <- tabPanel(
@@ -107,14 +110,17 @@ tab_stats <- tabPanel(
         "Statistic",
         choices = resources$choices$fn_stats
       ),
-      textInput("stats_arguments", "Arguments"),
-      verbatimTextOutput("funcargs"),
-      actionButton("stats_help", "Open help"),
+      #textInput("stats_arguments", "Arguments"),
+      #verbatimTextOutput("funcargs"),
+
+      uiOutput("stats_arguments"),
       hr(),
-      radioButtons("stats_out", "Output format", c("Text", "Html"), "Text"),
-      textInput("stats_print_arguments", "Output arguments")
+      actionButton("stats_help", "Open help")
     ),
     mainPanel(
+      radioButtons("stats_out", "Output format", c("Text", "Html"), "Text"),
+      textInput("stats_print_arguments", "Output arguments"),
+      hr(),
       verbatimTextOutput("stats_syntax"),
       conditionalPanel(
         'input.stats_out == "Text"', verbatimTextOutput("stats_text")
@@ -153,7 +159,7 @@ ui <- navbarPage(
   tab_scdf,
   tab_transform,
   tab_stats,
-  #tab_export,
   tab_plot,
+  #tab_test,
   tab_about
 )

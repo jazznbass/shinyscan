@@ -1,18 +1,96 @@
 
-
-
-
 server <- function(input, output, session) {
 
+  # scdf -----
   scdf <- reactive({
     out <- NULL
-    if (input$datasource == "My scdf") {#if (input$example == "My scdf") {
+    if (input$datasource == "My scdf") {
       out <- readRDS(tmp_filename)
     } else {
-      out <- paste0("scan::",input$example) |> str2lang() |> eval()
+      out <- paste0("scan::",input$example) |> str2lang() |> eval()#
+      #get(input$example, "package:scan")
     }
     out
   })
+
+  output$scdf_summary <- renderPrint({
+    do.call("summary", list(scdf()))
+  })
+
+  output$scdf_syntax <- renderPrint({
+    do.call("convert", list(scdf()))
+  })
+
+  # scdf: upload ------
+  observeEvent(input$upload, {
+    ext <- tools::file_ext(input$upload$datapath)
+    if (ext == "rds") {
+      new <- readRDS(input$upload$datapath)
+      syntax <- paste0("scdf <- read_RDS(\"", input$upload$name, "\")")
+
+    } else {
+      new <- read_scdf(input$upload$datapath)
+      syntax <- paste0("scdf <- read_scdf(\"", input$upload$name, "\")")
+    }
+
+    #output$scdf_upload <- renderText(syntax)
+    saveRDS(new, tmp_filename)
+    updateRadioButtons(session, "datasource", selected = "My scdf")
+  })
+
+
+  # scdf: new cases --------
+  observeEvent(input$add_case, {
+    new <- try({
+      values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
+      scan::scdf(values, name = input$casename)
+    }, silent = TRUE)
+    if (!inherits(new, "try-error")) {
+      if (input$datasource == "My scdf") {
+        old <- readRDS(tmp_filename)
+      } else {
+        old <- paste0("scan::",input$example) |> str2lang() |> eval()
+        updateRadioButtons(session, "datasource", selected = "My scdf")
+      }
+
+      if (!is.null(old)) new <- c(old, new)
+      saveRDS(new, tmp_filename)
+
+      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
+      output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
+    }
+  })
+
+  observeEvent(input$set_case, {
+    new <- try({
+      values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
+      scan::scdf(values, name = input$casename)
+    }, silent = TRUE)
+    if (!inherits(new, "try-error")) {
+      updateRadioButtons(session, "datasource", selected = "My scdf")
+      saveRDS(new, tmp_filename)
+
+      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
+      output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
+    }
+
+  })
+
+  observeEvent(input$remove_case, {
+    if (input$datasource == "My scdf") {
+      new <- readRDS(tmp_filename)
+    } else {
+      new <- paste0("scan::",input$example) |> str2lang() |> eval()
+      updateRadioButtons(session, "datasource", selected = "My scdf")
+    }
+
+    new <- new[-length(new)]
+    saveRDS(new, tmp_filename)
+    output$scdf_summary <- renderPrint(do.call("summary", list(new)))
+    output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
+  })
+
+  # transform ----
 
   transformed <- reactive({
     out <- scdf()
@@ -58,81 +136,106 @@ server <- function(input, output, session) {
     out
   })
 
-  # upload ------
-  observeEvent(input$upload, {
-    ext <- tools::file_ext(input$upload$datapath)
-    if (ext == "rds") {
-      new <- readRDS(input$upload$datapath)
-      syntax <- paste0("scdf <- read_RDS(\"", input$upload$name, "\")")
-
-    } else {
-      new <- read_scdf(input$upload$datapath)
-      syntax <- paste0("scdf <- read_scdf(\"", input$upload$name, "\")")
-    }
-
-    #output$scdf_upload <- renderText(syntax)
-    saveRDS(new, tmp_filename)
-    updateRadioButtons(session, "datasource", selected = "My scdf")
+  output$transform_scdf <- renderPrint({
+    print(transformed(), rows = 100)
   })
-
-  observeEvent(input$add_case, {
-    new <- try({
-      values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
-      scan::scdf(values, name = input$casename)
-    }, silent = TRUE)
-    if (!inherits(new, "try-error")) {
-      if (input$datasource == "My scdf") {
-        old <- readRDS(tmp_filename)
-      } else {
-        old <- paste0("scan::",input$example) |> str2lang() |> eval()
-        updateRadioButtons(session, "datasource", selected = "My scdf")
-      }
-
-      if (!is.null(old)) new <- c(old, new)
-      saveRDS(new, tmp_filename)
-
-      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
-      output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
-
-    }
-
-  })
-
-  observeEvent(input$set_case, {
-    new <- try({
-      values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
-      scan::scdf(values, name = input$casename)
-    }, silent = TRUE)
-    if (!inherits(new, "try-error")) {
-      updateRadioButtons(session, "datasource", selected = "My scdf")
-      saveRDS(new, tmp_filename)
-
-      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
-      output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
-    }
-
-  })
-
-  observeEvent(input$remove_case, {
-
-    if (input$datasource == "My scdf") {
-      new <- readRDS(tmp_filename)
-    } else {
-      new <- paste0("scan::",input$example) |> str2lang() |> eval()
-      updateRadioButtons(session, "datasource", selected = "My scdf")
-    }
-
-    new <- new[-length(new)]
-    saveRDS(new, tmp_filename)
-    output$scdf_summary <- renderPrint(do.call("summary", list(new)))
-    output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
-  })
-
 
   output$save <- downloadHandler(
     filename = function() "my_scdf.rds",
     content = function(file) saveRDS(transformed(), file)
   )
+
+  # stats -----
+
+  output$stats_html <- renderUI({
+    scdf <- transformed()
+    call <- get_stats_call()
+    print_args <- input$stats_print_arguments
+    if (print_args != "")
+      print_args <- paste0(", ", print_args)
+    call<- paste0("export(", call, print_args, ")")
+    str2lang(call) |> eval() |> HTML()
+  })
+
+  output$stats_text <- renderPrint({
+    call <- get_stats_call()
+    scdf <- transformed()
+    print_args <- input$stats_print_arguments
+    if (print_args != "")
+      print_args <- paste0(", ", print_args)
+    call<- paste0("print(", call, print_args, ")")
+    str2lang(call) |> eval()
+  })
+
+
+  observeEvent(input$stats_help, {
+    link <- paste0(
+      "https://jazznbass.github.io/scan/reference/", input$func, ".html"
+    )
+    browseURL(link)
+  })
+
+  output$stats_syntax <- renderPrint({
+    cat(get_stats_call())
+  })
+
+
+  # stats: arguments ------
+
+  stat_arg_names <- reactive({
+    args <- names(formals(input$func))
+    values <- formals(input$func)
+
+    id <- which(!args %in% c("dvar", "pvar", "mvar", "phases", "meta_method",
+                             "data", "scdf", "data.l2", "offset", "lag.max",
+                             "graph", "output", "..."))
+    args <- args[id]
+    values <- values[id]
+    list(names = args, values = values)
+  })
+
+  output$stats_arguments <- renderUI({
+    args <- stat_arg_names()
+
+    out <- vector("list", length(args$names))
+    if (length(out) > 0) {
+      for (i in 1:length(out)) {
+        value <- args$values[[i]]
+        if (is.character(value)) {
+          value <- paste0("\"", value, "\"")
+        } else {
+          value <- substitute(value) |> deparse()
+        }
+
+        out[[i]] <- textInput(
+          args$names[i], args$names[i], value = value
+          #isolate(input[[args$names[i]]])
+        )
+      }
+      return(out)
+    }
+  })
+
+  get_stats_call <- reactive({
+    args <- stat_arg_names()
+    values <- sapply(args$names, function(name) input[[name]])
+    args <- args$names
+    id <- which(values != "")
+    args <- args[id]
+    values <- values[id]
+
+    call <- paste0(
+      input$func, "(scdf",
+      if (length(args > 0)) {
+        paste0(", ",paste0(args, " = ", values, collapse = ", "))
+      } else {
+        ""
+      },
+      ")"
+    )
+    call
+  })
+
 
   # plot -----
 
@@ -192,92 +295,6 @@ server <- function(input, output, session) {
       }
     }
     cat(call)
-  })
-
-  # stats -----
-
-  output$stats_html <- renderUI({
-    scdf <- transformed()
-    call <- paste0(input$func, "(scdf")
-    if (input$stats_arguments == "") {
-      call <- paste0(call, ")")
-    } else {
-      call <- paste0(call, ",", input$stats_arguments, ")")
-    }
-    print_args <- input$stats_print_arguments
-    if (print_args != "")
-      print_args <- paste0(", ", print_args)
-    call<- paste0("export(", call, print_args, ")")
-    str2lang(call) |> eval() |> HTML()
-  })
-
-  output$stats_text <- renderPrint({
-    scdf <- transformed()
-    first <- paste0(input$func, "(scdf")
-    if (input$stats_arguments == "") {
-      last <- ")"
-    } else {
-      last <- paste0(", ", input$stats_arguments, ")")
-    }
-    call <- paste0(first, last)
-    print_args <- input$stats_print_arguments
-    if ( print_args != "")
-      print_args <- paste0(", ", print_args)
-    call<- paste0("print(", call, print_args, ")")
-    str2lang(call) |> eval()
-  })
-
-
-  observeEvent(input$stats_help, {
-    link <- paste0(
-      "https://jazznbass.github.io/scan/reference/", input$func, ".html"
-    )
-    browseURL(link)
-  })
-
-  output$stats_syntax <- renderPrint({
-    call <- paste0(input$func, "(scdf")
-    if (input$stats_arguments == "") {
-      call <- paste0(call, ")")
-    } else {
-      call <- paste0(call, ",", input$stats_arguments, ")")
-    }
-    cat(call)
-  })
-
-  output$funcargs <- renderText({
-    get_call(input$func)
-  })
-
-  # scdf ----
-
-  output$scdf_summary <- renderPrint({
-    do.call("summary", list(scdf()))
-  })
-
-  output$scdf_syntax <- renderPrint({
-    do.call("convert", list(scdf()))
-  })
-
-  # export html ----
-  output$export_html <- renderUI({
-    scdf <- transformed()
-    call <- paste0(input$func, "(scdf")
-    if (input$func == "") {
-      call <- paste0(call, ")")
-    } else {
-      call <- paste0(call, ",", input$stats_arguments, ")")
-    }
-    out <- str2lang(call) |> eval()
-    out <- paste0("export(out,", input$export_arguments, ")") |>
-      str2lang() |> eval()
-    HTML(out)
-  })
-
-
-  # transform ----
-  output$transform_scdf <- renderPrint({
-    print(transformed(), rows = 100)
   })
 
 
