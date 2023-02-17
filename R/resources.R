@@ -21,3 +21,9 @@ shinyjs.openURL = function(url) {
 }
 "
 
+trim <- function(x) {
+  gsub("\n", ", ", trimws(x))
+}
+
+
+

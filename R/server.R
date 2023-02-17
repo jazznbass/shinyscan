@@ -43,7 +43,12 @@ server <- function(input, output, session) {
   observeEvent(input$add_case, {
     new <- try({
       values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
-      scan::scdf(values, name = input$casename)
+      if (input$mt == "") {
+        scan::scdf(values, name = input$casename)
+      } else {
+        mt <- paste0("c(", input$mt, ")") |> str2lang() |> eval()
+        scan::scdf(values, mt = mt, name = input$casename)
+      }
     }, silent = TRUE)
     if (!inherits(new, "try-error")) {
       if (input$datasource == "My scdf") {
@@ -64,7 +69,12 @@ server <- function(input, output, session) {
   observeEvent(input$set_case, {
     new <- try({
       values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
-      scan::scdf(values, name = input$casename)
+      if (input$mt == "") {
+        scan::scdf(values, name = input$casename)
+      } else {
+        mt <- paste0("c(", input$mt, ")") |> str2lang() |> eval()
+        scan::scdf(values, mt = mt, name = input$casename)
+      }
     }, silent = TRUE)
     if (!inherits(new, "try-error")) {
       updateRadioButtons(session, "datasource", selected = "My scdf")
@@ -103,9 +113,9 @@ server <- function(input, output, session) {
     }
 
     if (input$select_phases != "") {
-      args <- paste0("c(", input$select_phases, ")") |> str2lang() |> eval()
-      out <- do.call("select_phases", c(list(out), args))
-      syntax <- c(syntax, paste0("select_phases(c(", input$select_phases, "))"))
+      out <- paste0("select_phases(out, ", input$select_phases, ")") |>
+        str2lang() |> eval()
+      syntax <- c(syntax, paste0("select_phases(", input$select_phases, ")"))
     }
 
     if (input$subset != "") {
@@ -120,6 +130,12 @@ server <- function(input, output, session) {
       syntax <- c(
         syntax, paste0("transform(", gsub("\n", ", ", trim(input$transform)),")")
       )
+    }
+
+    if (input$setdvar != "") {
+      args <-  list(input$setdvar)
+      out <- do.call("set_dvar", c(list(out),args))
+      syntax <- c(syntax, paste0("set_dvar(",  deparse(input$setdvar), ")"))
     }
 
     if (length(syntax)>1) {
@@ -263,7 +279,6 @@ server <- function(input, output, session) {
       link <- "https://jazznbass.github.io/scan/reference/plot.scdf.html"
     }
     js$openURL(link)
-    #browseURL(link)
   })
 
   render_plot <- reactive({
@@ -274,7 +289,7 @@ server <- function(input, output, session) {
           call, "%>% ", gsub("\n", " %>% ", trimws(input$plot_arguments))
         )
       }
-      str2lang(call) |> eval()
+      paste0("print(",call,")") |> str2lang() |> eval()
     } else if (input$plot == "plot.scdf") {
       call <- paste0(
         "plot(transformed(), ", trim(input$plot_arguments), ")"
@@ -291,9 +306,21 @@ server <- function(input, output, session) {
   output$saveplot <- downloadHandler(
     filename = function() "my_scan_plot.png",
     content = function(file) {
-      png(file)
-      render_plot()
-      dev.off()
+      if (input$plot == "scplot"){
+        ggplot2::ggsave(
+          file, render_plot(), width = input$width, height = input$height,
+          dpi = input$dpi, units = "px",  device = "png"
+        )
+      }
+      if (input$plot == "plot.scdf"){
+        grDevices::png(file, width = input$width, height = input$height,
+                       res = input$dpi, units = "px")
+        call <- paste0(
+          "plot(transformed(), ", trim(input$plot_arguments), ")"
+        )
+        str2lang(call) |> eval()
+        grDevices::dev.off()
+      }
     }
   )
 
