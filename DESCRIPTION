@@ -9,7 +9,8 @@ Authors@R:
 Imports: 
   scan,
   scplot,
-  shiny
+  shiny,
+  shinyjs
 Depends: R (>= 3.5.0)
 Description: A package with a scan shiny app
 License: GPL (>= 3)

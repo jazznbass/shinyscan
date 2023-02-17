@@ -26,6 +26,8 @@ tab_about <- tabPanel(
 ## Plot -----
 tab_plot <- tabPanel(
   "Plot",
+  useShinyjs(),
+  extendShinyjs(text = js_code, functions = 'openURL'),
   sidebarLayout(
     sidebarPanel(
       selectInput("plot", "Plot engine", choices = resources$choices$fn_plot),
@@ -100,6 +102,8 @@ tab_scdf <-   tabPanel(
 # Stats -----
 tab_stats <- tabPanel(
   "Stats",
+  useShinyjs(),
+  extendShinyjs(text = js_code, functions = 'openURL'),
   sidebarLayout(
     sidebarPanel(
       selectInput(
@@ -108,7 +112,7 @@ tab_stats <- tabPanel(
         choices = resources$choices$fn_stats
       ),
       radioButtons(
-        "stats_default", "Defaults", choices = c("No", "Yes"), inline = TRUE
+        "stats_default", "Use defaults", choices = c("No", "Yes"), inline = TRUE
       ),
 
       uiOutput("stats_arguments"),
@@ -132,19 +136,6 @@ tab_stats <- tabPanel(
     )
   )
 )
-
-## Export -----
-tab_export <- tabPanel(
-  "Export",
-  sidebarLayout(
-    sidebarPanel(
-      textInput("export_arguments", "Arguments")
-    ),
-    mainPanel(htmlOutput("export_html"))
-  )
-)
-
-
 
 
 ui <- navbarPage(

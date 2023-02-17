@@ -8,6 +8,7 @@
 #' @author Juergen Wilbert [aut, cre]
 #' @keywords package
 #' @import shiny
+#' @import shinyjs
 #' @import scan
 #' @import scplot
 NULL

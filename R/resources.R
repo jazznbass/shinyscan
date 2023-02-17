@@ -10,5 +10,14 @@ resources$choices$fn_stats <- c(
 
 resources$choices$fn_plot <- c("plot" = "plot.scdf", "scplot" = "scplot")
 
-tmp_filename <-  "temp-scdf.rds"#paste0(tempfile(),".rds")
+tmp_filename <-  "temp-scdf.rds" #file.path(tempdir(), "my-scdf.rds")
 saveRDS(NULL,tmp_filename)
+
+
+# define js function for opening urls in new tab/window
+js_code <- "
+shinyjs.openURL = function(url) {
+  window.open(url,'_blank');
+}
+"
+
