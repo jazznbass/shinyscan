@@ -187,9 +187,11 @@ server <- function(input, output, session) {
     args <- names(formals(input$func))
     values <- formals(input$func)
 
-    id <- which(!args %in% c("dvar", "pvar", "mvar", "phases", "meta_method",
-                             "data", "scdf", "data.l2", "offset", "lag.max",
-                             "graph", "output", "..."))
+    id <- which(!args %in% c(
+      "dvar", "pvar", "mvar", "phases", "meta_method",
+      "data", "scdf", "data.l2", "offset", "lag.max",
+      "graph", "output", "...")
+    )
     args <- args[id]
     values <- values[id]
     list(names = args, values = values)
@@ -201,19 +203,29 @@ server <- function(input, output, session) {
     out <- vector("list", length(args$names))
     if (length(out) > 0) {
       for (i in 1:length(out)) {
-        value <- ""
-        if (input$stats_default == "Yes") {
-          value <- args$values[[i]]
-          if (is.character(value)) {
-            value <- paste0("\"", value, "\"")
-          } else {
-            value <- substitute(value) |> deparse()
-          }
+
+        value <- args$values[[i]]
+        if (is.character(value)) value <- deparse(value)
+        if (isTRUE(is.na(value))) value <- substitute(value) |> deparse()
+        if (is.null(value)) value <- substitute(value) |> deparse()
+        if (!is.numeric(value) && !is.logical(value) && !is.character(value)) {
+          value <- substitute(value) |> deparse()
         }
-        out[[i]] <- textInput(
-          args$names[i], args$names[i], value = value
-          #isolate(input[[args$names[i]]])
-        )
+
+        if (input$stats_default == "Yes") outvalue <- value else outvalue = NULL
+
+        if (is.numeric(value)) {
+          out[[i]] <- numericInput(
+            args$names[i], args$names[i], value = outvalue
+          )
+        } else if (is.logical(value)) {
+          out[[i]] <- radioButtons(
+            args$names[i], args$names[i], choices = c("empty" = "", "FALSE", "TRUE"),
+            inline = TRUE, selected = outvalue
+          )
+        } else {
+          out[[i]] <- textInput(args$names[i], args$names[i], value = outvalue)
+        }
       }
       return(out)
     }
