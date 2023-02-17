@@ -42,7 +42,7 @@ tab_transform <- tabPanel(
   sidebarLayout(
     sidebarPanel(
       textInput("select_cases", "Select cases", value = ""),
-      textInput("select_phases", "Recomnbine phases", value = ""),
+      textInput("select_phases", "Recombine phases", value = ""),
       textInput("subset", "Filter measurments", value = ""),
       textAreaInput("transform", "Transform", value = "", rows = 5),
       textInput("setdvar", "Set dependent variable", value = ""),
