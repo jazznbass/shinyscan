@@ -1,7 +1,4 @@
 
-
-## test ----
-
 ## About -----
 
 tab_about <- tabPanel(
@@ -110,15 +107,18 @@ tab_stats <- tabPanel(
         "Statistic",
         choices = resources$choices$fn_stats
       ),
-      #textInput("stats_arguments", "Arguments"),
-      #verbatimTextOutput("funcargs"),
+      radioButtons(
+        "stats_default", "Defaults", choices = c("No", "Yes"), inline = TRUE
+      ),
 
       uiOutput("stats_arguments"),
       hr(),
       actionButton("stats_help", "Open help")
     ),
     mainPanel(
-      radioButtons("stats_out", "Output format", c("Text", "Html"), "Text"),
+      radioButtons(
+        "stats_out", "Output format", c("Text", "Html"), "Text", inline = TRUE
+      ),
       textInput("stats_print_arguments", "Output arguments"),
       hr(),
       verbatimTextOutput("stats_syntax"),

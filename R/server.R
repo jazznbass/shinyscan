@@ -172,6 +172,7 @@ server <- function(input, output, session) {
     link <- paste0(
       "https://jazznbass.github.io/scan/reference/", input$func, ".html"
     )
+    #js$openURL(link)
     browseURL(link)
   })
 
@@ -200,13 +201,15 @@ server <- function(input, output, session) {
     out <- vector("list", length(args$names))
     if (length(out) > 0) {
       for (i in 1:length(out)) {
-        value <- args$values[[i]]
-        if (is.character(value)) {
-          value <- paste0("\"", value, "\"")
-        } else {
-          value <- substitute(value) |> deparse()
+        value <- ""
+        if (input$stats_default == "Yes") {
+          value <- args$values[[i]]
+          if (is.character(value)) {
+            value <- paste0("\"", value, "\"")
+          } else {
+            value <- substitute(value) |> deparse()
+          }
         }
-
         out[[i]] <- textInput(
           args$names[i], args$names[i], value = value
           #isolate(input[[args$names[i]]])
@@ -220,7 +223,9 @@ server <- function(input, output, session) {
     args <- stat_arg_names()
     values <- sapply(args$names, function(name) input[[name]])
     args <- args$names
-    id <- which(values != "")
+
+   id <- which(values != "")
+
     args <- args[id]
     values <- values[id]
 
@@ -245,6 +250,7 @@ server <- function(input, output, session) {
     } else if (input$plot == "plot.scdf") {
       link <- "https://jazznbass.github.io/scan/reference/plot.scdf.html"
     }
+    #js$openURL(link)
     browseURL(link)
   })
 
