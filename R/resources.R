@@ -1,6 +1,6 @@
 resources <- list()
 resources$choices <- list()
-resources$choices$examples <- c("My scdf", substr(data(package = "scan")$results[,3], 0, nchar(data(package = "scan")$results[,3]) - 12))
+resources$choices$examples <- c("(none)", substr(data(package = "scan")$results[,3], 0, nchar(data(package = "scan")$results[,3]) - 12))
 
 resources$choices$fn_stats <- c(
   "describe", "smd", "overlap", "trend", "autocorr", "cdc", "plm", "hplm",
@@ -9,9 +9,6 @@ resources$choices$fn_stats <- c(
 )
 
 resources$choices$fn_plot <- c("plot" = "plot.scdf", "scplot" = "scplot")
-
-tmp_filename <-  "temp-scdf.rds" #file.path(tempdir(), "my-scdf.rds")
-saveRDS(NULL,tmp_filename)
 
 
 # define js function for opening urls in new tab/window
