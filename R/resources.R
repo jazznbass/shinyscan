@@ -8,7 +8,7 @@ resources$choices$fn_stats <- c(
   "rand_test", "outlier"
 )
 
-resources$choices$fn_plot <- c("plot" = "plot.scdf", "scplot" = "scplot")
+resources$choices$fn_plot <- c("scplot" = "scplot", "plot" = "plot.scdf")
 
 
 # define js function for opening urls in new tab/window

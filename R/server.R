@@ -168,7 +168,15 @@ server <- function(input, output, session) {
   })
 
   output$transform_scdf <- renderPrint({
-    print(transformed(), rows = 100)
+    if (inherits(my_scdf(), "scdf")) {
+      print(transformed(), rows = 100)
+    } else {
+      cat(
+        "There is no case defined yet.",
+        "Please define a case on the 'scdf' tab first.",
+        sep = "\n"
+      )
+    }
   })
 
   output$transform_save <- downloadHandler(
@@ -189,13 +197,22 @@ server <- function(input, output, session) {
   })
 
   output$stats_text <- renderPrint({
-    call <- get_stats_call()
-    scdf <- transformed()
-    print_args <- input$stats_print_arguments
-    if (print_args != "")
-      print_args <- paste0(", ", print_args)
-    call<- paste0("print(", call, print_args, ")")
-    str2lang(call) |> eval()
+    if (inherits(my_scdf(), "scdf")) {
+      call <- get_stats_call()
+      scdf <- transformed()
+      print_args <- input$stats_print_arguments
+      if (print_args != "")
+        print_args <- paste0(", ", print_args)
+      call<- paste0("print(", call, print_args, ")")
+      str2lang(call) |> eval()
+    } else {
+      cat(
+        "There is no case defined yet.",
+        "Please define a case on the 'scdf' tab first.",
+        sep = "\n"
+      )
+    }
+
   })
 
 
@@ -297,21 +314,22 @@ server <- function(input, output, session) {
   })
 
   render_plot <- reactive({
-    if (input$plot == "scplot") {
-      call <- paste0("scplot(transformed())")
-      if (trimws(input$plot_arguments) != "") {
+    if (inherits(my_scdf(), "scdf")) {
+      if (input$plot == "scplot") {
+        call <- paste0("scplot(transformed())")
+        if (trimws(input$plot_arguments) != "") {
+          call <- paste0(
+            call, "%>% ", gsub("\n", " %>% ", trimws(input$plot_arguments))
+          )
+        }
+        paste0("print(",call,")") |> str2lang() |> eval()
+      } else if (input$plot == "plot.scdf") {
         call <- paste0(
-          call, "%>% ", gsub("\n", " %>% ", trimws(input$plot_arguments))
+          "plot(transformed(), ", trim(input$plot_arguments), ")"
         )
+        str2lang(call) |> eval()
       }
-      paste0("print(",call,")") |> str2lang() |> eval()
-    } else if (input$plot == "plot.scdf") {
-      call <- paste0(
-        "plot(transformed(), ", trim(input$plot_arguments), ")"
-      )
-      str2lang(call) |> eval()
     }
-
   })
 
   output$plot_scdf <- renderPlot({
