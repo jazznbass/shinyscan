@@ -1,109 +1,124 @@
 
 server <- function(input, output, session) {
 
-  # scdf -----
-  scdf <- reactive({
-    out <- NULL
-    if (input$datasource == "My scdf") {
-      out <- readRDS(tmp_filename)
-    } else {
-      out <- paste0("scan::",input$example) |> str2lang() |> eval()#
-      #get(input$example, "package:scan")
-    }
-    out
-  })
-
+  # Startup message
   output$scdf_summary <- renderPrint({
-    do.call("summary", list(scdf()))
+    cat(
+      "Welcome to 'shiny scan'!",
+      "",
+      "You can:",
+      "1. create a new case (click 'Add')",
+      "2. load a dataset (click 'Load file' to import an rds, csv, or excel file)",
+      "3. choose an example scdf (choosse from 'Load example')",
+      sep = "\n"
+    )
   })
 
-  output$scdf_syntax <- renderPrint({
-    do.call("convert", list(scdf()))
+  my_scdf <- reactiveVal()
+
+  scdf_render <- reactive({
+
+    output$scdf_summary <- renderPrint({
+      if (inherits(my_scdf(), "scdf")) {
+        do.call("summary", list(my_scdf()))
+      } else {
+        cat(
+          "No case has been defined yet.",
+          "You can:",
+          "1. create a new case (click 'Add')",
+          "2. load a dataset (click 'Load file' to import an rds, csv, or excel file)",
+          "3. choose an example scdf (choosse from 'Load example')",
+          sep = "\n"
+        )
+      }
+    })
+
+    output$scdf_syntax <- renderPrint({
+      if (inherits(my_scdf(), "scdf")) {
+        do.call("convert", list(my_scdf()))
+      }
+    })
+
   })
 
-  # scdf: upload ------
+  observeEvent(input$scdf_example, {
+    if (input$scdf_example != "(none)") {
+      my_scdf(paste0("scan::", input$scdf_example) |> str2lang() |> eval())
+      scdf_render()
+    } else {
+      my_scdf(NULL)
+    }
+  })
+
+
+  # scdf: upload / save ------
   observeEvent(input$upload, {
     ext <- tools::file_ext(input$upload$datapath)
     if (ext == "rds") {
       new <- readRDS(input$upload$datapath)
-      syntax <- paste0("scdf <- read_RDS(\"", input$upload$name, "\")")
-
+      #syntax <- paste0("scdf <- read_RDS(\"", input$upload$name, "\")")
     } else {
       new <- read_scdf(input$upload$datapath)
-      syntax <- paste0("scdf <- read_scdf(\"", input$upload$name, "\")")
+      #syntax <- paste0("scdf <- read_scdf(\"", input$upload$name, "\")")
     }
-
-    #output$scdf_upload <- renderText(syntax)
-    saveRDS(new, tmp_filename)
-    updateRadioButtons(session, "datasource", selected = "My scdf")
+    my_scdf(new)
+    scdf_render()
   })
 
+  output$scdf_save <- downloadHandler(
+    filename = function() "my_scdf.rds",
+    content = function(file) saveRDS(my_scdf(), file)
+  )
 
   # scdf: new cases --------
   observeEvent(input$add_case, {
     new <- try({
       values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
-      if (input$mt == "") {
-        scan::scdf(values, name = input$casename)
-      } else {
-        mt <- paste0("c(", input$mt, ")") |> str2lang() |> eval()
-        scan::scdf(values, mt = mt, name = input$casename)
+      dvar <- "values"
+      if (inherits(my_scdf(), "scdf")) {
+        dvar <- scdf_attr(my_scdf(), "var.values")
       }
+
+      if (input$mt == "") {
+        call <- paste0(
+          "scdf(", dvar, " = ", deparse(values),
+          ", dvar = ", deparse(dvar),
+          ", name = ",
+          deparse(input$casename), ")"
+        )
+      } else {
+        call <- paste0(
+          "scdf(", dvar, " = ", deparse(values),
+          ", mt = ", deparse(mt),
+          ", dvar = ", deparse(dvar),
+          ", name = ", deparse(input$casename), ")"
+        )
+      }
+      new <- call |> str2lang() |> eval()
     }, silent = TRUE)
     if (!inherits(new, "try-error")) {
-      if (input$datasource == "My scdf") {
-        old <- readRDS(tmp_filename)
-      } else {
-        old <- paste0("scan::",input$example) |> str2lang() |> eval()
-        updateRadioButtons(session, "datasource", selected = "My scdf")
-      }
-
-      if (!is.null(old)) new <- c(old, new)
-      saveRDS(new, tmp_filename)
-
-      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
-      output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
+      if (length(my_scdf()) > 0) new <- c(my_scdf(), new)
+      my_scdf(new)
+      scdf_render()
     }
-  })
-
-  observeEvent(input$set_case, {
-    new <- try({
-      values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
-      if (input$mt == "") {
-        scan::scdf(values, name = input$casename)
-      } else {
-        mt <- paste0("c(", input$mt, ")") |> str2lang() |> eval()
-        scan::scdf(values, mt = mt, name = input$casename)
-      }
-    }, silent = TRUE)
-    if (!inherits(new, "try-error")) {
-      updateRadioButtons(session, "datasource", selected = "My scdf")
-      saveRDS(new, tmp_filename)
-
-      output$scdf_summary <- renderPrint(do.call("summary", list(new)))
-      output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
-    }
-
   })
 
   observeEvent(input$remove_case, {
-    if (input$datasource == "My scdf") {
-      new <- readRDS(tmp_filename)
-    } else {
-      new <- paste0("scan::",input$example) |> str2lang() |> eval()
-      updateRadioButtons(session, "datasource", selected = "My scdf")
-    }
+    if (length(my_scdf()) > 1) {
+      my_scdf(my_scdf()[-length(my_scdf())])
+    } else (my_scdf(NULL))
+    scdf_render()
+  })
 
-    new <- new[-length(new)]
-    saveRDS(new, tmp_filename)
-    output$scdf_summary <- renderPrint(do.call("summary", list(new)))
-    output$scdf_syntax <- renderPrint(do.call("convert", list(new)))
+  observeEvent(input$remove_all, {
+    my_scdf(NULL)
+    scdf_render()
   })
 
   # transform ----
 
   transformed <- reactive({
-    out <- scdf()
+    out <- my_scdf()
     syntax = "scdf"
     if (input$select_cases != "") {
       args <- list(str2lang(input$select_cases))
@@ -156,7 +171,7 @@ server <- function(input, output, session) {
     print(transformed(), rows = 100)
   })
 
-  output$save <- downloadHandler(
+  output$transform_save <- downloadHandler(
     filename = function() "my_scdf.rds",
     content = function(file) saveRDS(transformed(), file)
   )
@@ -252,7 +267,7 @@ server <- function(input, output, session) {
     values <- sapply(args$names, function(name) input[[name]])
     args <- args$names
 
-   id <- which(values != "")
+    id <- which(values != "")
 
     args <- args[id]
     values <- values[id]

@@ -1,30 +1,26 @@
-
 # scdf ------
 tab_scdf <-   tabPanel(
   "scdf",
   sidebarLayout(
     sidebarPanel(
-      fileInput("upload", NULL, accept = c(".csv", ".rds", ".xlsx", "xls"),
-                buttonLabel = "Load"),
-      radioButtons("datasource", "Source", c("My scdf", "Example"), "Example"),
-      selectInput(
-        "example",
-        "Example",
-        choices = resources$choices$examples,
-        selected = "exampleAB"
-      ),
-      hr(),
       h4("New case"),
       br(),
       textAreaInput(
-        "values",
-        "Values", value = "A = 1,2,3,4,3, \nB = 7,6,7,8,7,6"
+        "values", "Values", value = "A = 1,2,3,4,3, \nB = 7,6,7,8,7,6"
       ),
       textInput("mt", "Measurement times"),
-      textInput("casename", "Case name", value = "My case"),
-      actionButton("set_case", "Set first"),
+      textInput("casename", "Case name", value = "Example case"),
       actionButton("add_case", "Add"),
       actionButton("remove_case", "Remove last"),
+      actionButton("remove_all", "Remove all"),
+      hr(),
+      fileInput("upload", NULL, accept = c(".csv", ".rds", ".xlsx", "xls"),
+                buttonLabel = "Load file"),
+      downloadButton("scdf_save", "Save"),
+      hr(),
+      selectInput(
+        "scdf_example", "Load example", choices = resources$choices$examples
+      ),
     ),
 
     mainPanel(
@@ -34,8 +30,6 @@ tab_scdf <-   tabPanel(
   )
 )
 
-
-
 # Transform -----
 tab_transform <- tabPanel(
   "Transform",
@@ -44,9 +38,9 @@ tab_transform <- tabPanel(
       textInput("select_cases", "Select cases", value = ""),
       textInput("select_phases", "Recombine phases", value = ""),
       textInput("subset", "Filter measurments", value = ""),
-      textAreaInput("transform", "Transform", value = "", rows = 5),
+      textAreaInput("transform", "Transform variables", value = "", rows = 5),
       textInput("setdvar", "Set dependent variable", value = ""),
-      downloadButton("save", "Save active scdf")
+      downloadButton("transform_save", "Save")
     ),
     mainPanel(
       verbatimTextOutput("transform_syntax"),
