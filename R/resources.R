@@ -1,3 +1,8 @@
+library(scan)
+library(scplot)
+library(shiny)
+library(shinyjs)
+
 resources <- list()
 resources$choices <- list()
 resources$choices$examples <- c("(none)", substr(data(package = "scan")$results[,3], 0, nchar(data(package = "scan")$results[,3]) - 12))

@@ -1,3 +1,5 @@
+try(source("resources.R"))
+
 # scdf ------
 tab_scdf <-   tabPanel(
   "scdf",
