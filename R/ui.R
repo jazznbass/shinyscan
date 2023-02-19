@@ -140,6 +140,15 @@ tab_plot <- tabPanel(
   )
 )
 
+## Help -----
+
+tab_help <- tabPanel(
+  "Help",
+  htmltools::includeMarkdown(res$help_page)
+  #htmltools::includeMarkdown("help_page.md")
+)
+
+
 ## About -----
 
 tab_about <- tabPanel(
@@ -164,7 +173,7 @@ tab_about <- tabPanel(
 
 ui <- navbarPage(
   title = "Shiny scan",
-  #theme = shinythemes::shinytheme("sandstone"),
+  theme = shinythemes::shinytheme("cerulean"),
   #header = shinythemes::themeSelector(),
   tags$header(tags$style("#funcargs{
                          font-size: 16px;
@@ -175,6 +184,7 @@ ui <- navbarPage(
   tab_transform,
   tab_stats,
   tab_plot,
+  tab_help,
   #tab_test,
   tab_about
 )

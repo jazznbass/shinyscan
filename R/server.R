@@ -8,8 +8,9 @@ server <- function(input, output, session) {
 
   scdf_render <- reactive({
 
+    if (!inherits(my_scdf(), "scdf")) validate(res$msg$no_case)
+
     output$scdf_summary <- renderPrint({
-      if (!inherits(my_scdf(), "scdf")) validate(res$msg$no_case)
       do.call("summary", list(my_scdf()))
     })
 
@@ -79,7 +80,9 @@ server <- function(input, output, session) {
       scdf_render()
       },
       error = function(e)
-        output$scdf_summary <- renderText(res$error_msg$invalid_case)
+        output$scdf_summary <- renderText(
+          paste0(res$error_msg$invalid_case, "\n\n", e)
+        )
     )
   })
 
@@ -159,28 +162,41 @@ server <- function(input, output, session) {
 
   # stats -----
 
-  output$stats_html <- renderUI({
+  calculate_stats <- reactive({
+    if (!inherits(my_scdf(), "scdf")) validate(res$msg$no_case)
     scdf <- transformed()
     call <- get_stats_call()
+    tryCatch(
+      str2lang(call) |> eval(),
+      error = function(e)
+        validate(paste0("Sorry, could not proceed calculation:\n\n", e))
+    )
+  })
+
+  output$stats_html <- renderUI({
+    results <- calculate_stats()
     print_args <- input$stats_print_arguments
-    if (print_args != "")
+    if (print_args != "") {
       print_args <- paste0(", ", print_args)
-    call<- paste0("export(", call, print_args, ")")
-    str2lang(call) |> eval() |> HTML()
+      call<- paste0("export(results, ", print_args, ")")
+    } else call <- "export(results)"
+    tryCatch(
+      str2lang(call) |> eval() |> HTML(),
+      error = function(e)
+        validate("Sorry, no html export for this function available yet.")
+    )
   })
 
   output$stats_text <- renderPrint({
+    results <- calculate_stats()
 
-    if (!inherits(my_scdf(), "scdf")) validate(res$msg$no_case)
-
-    call <- get_stats_call()
-    scdf <- transformed()
     print_args <- input$stats_print_arguments
-    if (print_args != "")
+    if (print_args != "") {
       print_args <- paste0(", ", print_args)
-    call<- paste0("print(", call, print_args, ")")
-    str2lang(call) |> eval()
+      call<- paste0("print(results, ", print_args, ")")
+    } else call <- "print(results)"
 
+    str2lang(call) |> eval()
   })
 
 
@@ -189,7 +205,6 @@ server <- function(input, output, session) {
       "https://jazznbass.github.io/scan/reference/", input$func, ".html"
     )
     js$openURL(link)
-    #browseURL(link)
   })
 
   output$stats_syntax <- renderPrint({
@@ -320,7 +335,7 @@ server <- function(input, output, session) {
     tryCatch(
       str2lang(call) |> eval(),
       error = function(x)
-        output$plot_syntax <- renderText(res$error_msg$plot)
+        output$plot_syntax <- renderText(paste0(res$error_msg$plot, "\n\n", x))
     )
   })
 

@@ -41,9 +41,23 @@ res$msg$startup <-
 "Welcome to 'shiny scan'!
 
 You can:
+
 1. create a new case (click 'Add')
 2. load a dataset (click 'Load file' to import an rds, csv, or excel file)
 3. choose an example scdf (choosse from 'Load example')
+
+'exampleABC' is a good place to start.
+
+The basic procedure is:
+
+1. *Choose or create* a single case file in the 'scdf' tab.
+2. Optionally *refine* the case in the 'Transform' tab (select cases, recombine phases, etc.)
+3. *Analyse* the data in the 'Stats' tab.
+4. Create a *plot* in the 'Plot' tab.
+
+Look at the 'Help' tab for more information.
+
+Have fun!
 "
 
 res$msg$no_case_scdf <-
@@ -57,6 +71,33 @@ You can:
 res$msg$no_case <-
 "There is no case defined yet.
 Please define a case on the 'scdf' tab first.
+"
+
+res$help_page <- "
+#### Welcome to ***shiny scan***!
+
+*Shiny-scan* is a graphical surface for the *scan* (Single-Case Data Analysis). *scan* is an R package.
+
+The basic procedure is:
+
+1. Choose/ create a single case file in the **scdf tab**.
+2. Optionally refine the case in the **Transform tab** (select cases, recombine phases, etc.)
+3. Analyse the data in the **Stats tab**.
+4. Create a plot in the **Plot tab**.
+
+Analysis and plots are based on the scdf after any changes from the **Transform tab**.
+
+You have two plot engines to choose from. scplot is much more powerful.
+
+Here are helpful links:
+
+[Help pages for scan](https://jazznbass.github.io/scan/)
+
+[Online book for single case analysis with scan](https://jazznbass.github.io/scan-Book/)
+
+[Help pages for scplot](https://jazznbass.github.io/scplot/)
+
+Have fun!
 "
 
 # define js function for opening urls in new tab/window
@@ -80,3 +121,4 @@ quoted <- function(x) {
   out
 }
 
+n2br <- function(x) gsub("\n", "<br>", x)
