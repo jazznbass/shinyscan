@@ -2,41 +2,20 @@
 server <- function(input, output, session) {
 
   # Startup message
-  output$scdf_summary <- renderPrint({
-    cat(
-      "Welcome to 'shiny scan'!",
-      "",
-      "You can:",
-      "1. create a new case (click 'Add')",
-      "2. load a dataset (click 'Load file' to import an rds, csv, or excel file)",
-      "3. choose an example scdf (choosse from 'Load example')",
-      sep = "\n"
-    )
-  })
+  output$scdf_summary <- renderPrint(cat(res$msg$startup))
 
   my_scdf <- reactiveVal()
 
   scdf_render <- reactive({
 
     output$scdf_summary <- renderPrint({
-      if (inherits(my_scdf(), "scdf")) {
-        do.call("summary", list(my_scdf()))
-      } else {
-        cat(
-          "No case has been defined yet.",
-          "You can:",
-          "1. create a new case (click 'Add')",
-          "2. load a dataset (click 'Load file' to import an rds, csv, or excel file)",
-          "3. choose an example scdf (choosse from 'Load example')",
-          sep = "\n"
-        )
-      }
+      if (!inherits(my_scdf(), "scdf")) validate(res$msg$no_case)
+      do.call("summary", list(my_scdf()))
     })
 
     output$scdf_syntax <- renderPrint({
-      if (inherits(my_scdf(), "scdf")) {
-        do.call("convert", list(my_scdf()))
-      }
+      req(inherits(my_scdf(), "scdf"))
+      do.call("convert", list(my_scdf()))
     })
 
   })
@@ -72,8 +51,8 @@ server <- function(input, output, session) {
 
   # scdf: new cases --------
   observeEvent(input$add_case, {
-    new <- try({
-      values <- paste0("c(", input$values, ")") |> str2lang() |> eval()
+    tryCatch({
+      values <- paste0("c(", trim(input$values), ")")
       dvar <- "values"
       if (inherits(my_scdf(), "scdf")) {
         dvar <- scdf_attr(my_scdf(), "var.values")
@@ -81,26 +60,27 @@ server <- function(input, output, session) {
 
       if (input$mt == "") {
         call <- paste0(
-          "scdf(", dvar, " = ", deparse(values),
+          "scdf(", dvar, " = ", values,
           ", dvar = ", deparse(dvar),
           ", name = ",
           deparse(input$casename), ")"
         )
       } else {
         call <- paste0(
-          "scdf(", dvar, " = ", deparse(values),
+          "scdf(", dvar, " = ", values,
           ", mt = ", deparse(mt),
           ", dvar = ", deparse(dvar),
           ", name = ", deparse(input$casename), ")"
         )
       }
       new <- call |> str2lang() |> eval()
-    }, silent = TRUE)
-    if (!inherits(new, "try-error")) {
       if (length(my_scdf()) > 0) new <- c(my_scdf(), new)
       my_scdf(new)
       scdf_render()
-    }
+      },
+      error = function(e)
+        output$scdf_summary <- renderText(res$error_msg$invalid_case)
+    )
   })
 
   observeEvent(input$remove_case, {
@@ -168,15 +148,8 @@ server <- function(input, output, session) {
   })
 
   output$transform_scdf <- renderPrint({
-    if (inherits(my_scdf(), "scdf")) {
-      print(transformed(), rows = 100)
-    } else {
-      cat(
-        "There is no case defined yet.",
-        "Please define a case on the 'scdf' tab first.",
-        sep = "\n"
-      )
-    }
+    if(!inherits(my_scdf(), "scdf")) validate(res$msg$no_case)
+    print(transformed(), rows = 100)
   })
 
   output$transform_save <- downloadHandler(
@@ -197,21 +170,16 @@ server <- function(input, output, session) {
   })
 
   output$stats_text <- renderPrint({
-    if (inherits(my_scdf(), "scdf")) {
-      call <- get_stats_call()
-      scdf <- transformed()
-      print_args <- input$stats_print_arguments
-      if (print_args != "")
-        print_args <- paste0(", ", print_args)
-      call<- paste0("print(", call, print_args, ")")
-      str2lang(call) |> eval()
-    } else {
-      cat(
-        "There is no case defined yet.",
-        "Please define a case on the 'scdf' tab first.",
-        sep = "\n"
-      )
-    }
+
+    if (!inherits(my_scdf(), "scdf")) validate(res$msg$no_case)
+
+    call <- get_stats_call()
+    scdf <- transformed()
+    print_args <- input$stats_print_arguments
+    if (print_args != "")
+      print_args <- paste0(", ", print_args)
+    call<- paste0("print(", call, print_args, ")")
+    str2lang(call) |> eval()
 
   })
 
@@ -256,19 +224,40 @@ server <- function(input, output, session) {
         if (is.character(value)) value <- deparse(value)
         if (isTRUE(is.na(value))) value <- substitute(value) |> deparse()
         if (is.null(value)) value <- substitute(value) |> deparse()
-        if (!is.numeric(value) && !is.logical(value) && !is.character(value)) {
+        if (!is.numeric(value) && !is.logical(value) && !is.character(value) &&
+            !is.call(value)) {
           value <- substitute(value) |> deparse()
         }
-
+        if (is.call(value)) {
+          if (is.character(eval(value))) {
+            value <- eval(value)
+          } else {
+            value <- substitute(value) |> deparse()
+          }
+        }
         if (input$stats_default == "Yes") outvalue <- value else outvalue = NULL
 
-        if (is.numeric(value)) {
+        if (length(value) > 1) {
+          choices <- setNames(quoted(value), value)
+          if (input$stats_default == "No")
+            choices <- c("(empty)" = "", choices)
+          selected <- names(choices)[1]
+          out[[i]] <- selectInput(
+            args$names[i], args$names[i],
+            choices = choices,
+            selected = selected
+          )
+        } else if (is.numeric(value)) {
           out[[i]] <- numericInput(
             args$names[i], args$names[i], value = outvalue
           )
         } else if (is.logical(value)) {
+          choices <- c("FALSE", "TRUE")
+          if (input$stats_default == "No")
+            choices <- c("(empty)" = "", choices)
           out[[i]] <- radioButtons(
-            args$names[i], args$names[i], choices = c("empty" = "", "FALSE", "TRUE"),
+            args$names[i], args$names[i],
+            choices = choices,
             inline = TRUE, selected = outvalue
           )
         } else {
@@ -314,22 +303,25 @@ server <- function(input, output, session) {
   })
 
   render_plot <- reactive({
-    if (inherits(my_scdf(), "scdf")) {
-      if (input$plot == "scplot") {
-        call <- paste0("scplot(transformed())")
-        if (trimws(input$plot_arguments) != "") {
-          call <- paste0(
-            call, "%>% ", gsub("\n", " %>% ", trimws(input$plot_arguments))
-          )
-        }
-        paste0("print(",call,")") |> str2lang() |> eval()
-      } else if (input$plot == "plot.scdf") {
+    req(inherits(my_scdf(), "scdf"))
+    if (input$plot == "scplot") {
+      call <- paste0("scplot(transformed())")
+      if (trimws(input$plot_arguments) != "") {
         call <- paste0(
-          "plot(transformed(), ", trim(input$plot_arguments), ")"
+          call, "%>% ", gsub("\n", " %>% ", trimws(input$plot_arguments))
         )
-        str2lang(call) |> eval()
       }
+      call <- paste0("print(",call,")")
+    } else if (input$plot == "plot.scdf") {
+      call <- paste0(
+        "plot(transformed(), ", trim(input$plot_arguments), ")"
+      )
     }
+    tryCatch(
+      str2lang(call) |> eval(),
+      error = function(x)
+        output$plot_syntax <- renderText(res$error_msg$plot)
+    )
   })
 
   output$plot_scdf <- renderPlot({

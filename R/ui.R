@@ -8,10 +8,10 @@ tab_scdf <-   tabPanel(
       h4("New case"),
       br(),
       textAreaInput(
-        "values", "Values", value = "A = 1,2,3,4,3, \nB = 7,6,7,8,7,6"
+        "values", "Values", placeholder = "A = 1,2,3,4,3, \nB = 7,6,7,8,7,6"
       ),
-      textInput("mt", "Measurement times"),
-      textInput("casename", "Case name", value = "Example case"),
+      textInput("mt", "Measurement times", placeholder = "(optional)"),
+      textInput("casename", "Case name", placeholder = "Example case"),
       actionButton("add_case", "Add"),
       actionButton("remove_case", "Remove last"),
       actionButton("remove_all", "Remove all"),
@@ -21,7 +21,7 @@ tab_scdf <-   tabPanel(
       downloadButton("scdf_save", "Save"),
       hr(),
       selectInput(
-        "scdf_example", "Load example", choices = resources$choices$examples
+        "scdf_example", "Load example", choices = res$choices$examples
       ),
     ),
 
@@ -37,11 +37,25 @@ tab_transform <- tabPanel(
   "Transform",
   sidebarLayout(
     sidebarPanel(
-      textInput("select_cases", "Select cases", value = ""),
-      textInput("select_phases", "Recombine phases", value = ""),
-      textInput("subset", "Filter measurments", value = ""),
-      textAreaInput("transform", "Transform variables", value = "", rows = 5),
-      textInput("setdvar", "Set dependent variable", value = ""),
+      textInput(
+        "select_cases", "Select cases",
+        placeholder = "e.g.: 1, Anja, 3:5"
+      ),
+      textInput(
+        "select_phases", "Recombine phases",
+        placeholder = "e.g.: A = 1, B = c(2,3)"
+      ),
+      textInput(
+        "subset", "Filter measurments",
+        placeholder = 'e.g.: mt > mean(values[phase == "A"])'
+      ),
+      textAreaInput(
+        "transform", "Transform variables", rows = 5,
+        placeholder = res$placeholder$transform
+      ),
+      textInput(
+        "setdvar", "Set dependent variable", placeholder = "e.g.: depression"
+      ),
       downloadButton("transform_save", "Save")
     ),
     mainPanel(
@@ -57,16 +71,16 @@ tab_transform <- tabPanel(
 tab_stats <- tabPanel(
   "Stats",
   useShinyjs(),
-  extendShinyjs(text = js_code, functions = 'openURL'),
+  extendShinyjs(text = res$java$window.open, functions = 'openURL'),
   sidebarLayout(
     sidebarPanel(
       selectInput(
         "func",
         "Statistic",
-        choices = resources$choices$fn_stats
+        choices = res$choices$fn_stats
       ),
       radioButtons(
-        "stats_default", "Use defaults", choices = c("No", "Yes"), inline = TRUE
+        "stats_default", "Show defaults", choices = c("No", "Yes"), inline = TRUE
       ),
 
       uiOutput("stats_arguments"),
@@ -74,10 +88,18 @@ tab_stats <- tabPanel(
       actionButton("stats_help", "Open help")
     ),
     mainPanel(
-      radioButtons(
-        "stats_out", "Output format", c("Text", "Html"), "Text", inline = TRUE
+
+      div(style="display:inline-block; vertical-align: top",
+        radioButtons(
+          "stats_out", "Output format", c("Text", "Html"), "Text", inline = TRUE
+        )
       ),
-      textInput("stats_print_arguments", "Output arguments"),
+      div(style="display:inline-block; vertical-align: top; padding-left: 30px;",
+        textInput(
+          "stats_print_arguments", "Output arguments",
+          placeholder = "e.g.: flip = TRUE; digits = 2; meta = FALSE"
+        )
+      ),
       hr(),
       verbatimTextOutput("stats_syntax"),
       conditionalPanel(
@@ -96,13 +118,13 @@ tab_stats <- tabPanel(
 tab_plot <- tabPanel(
   "Plot",
   useShinyjs(),
-  extendShinyjs(text = js_code, functions = 'openURL'),
+  extendShinyjs(text = res$java$window.open, functions = 'openURL'),
   sidebarLayout(
     sidebarPanel(
-      selectInput("plot", "Plot engine", choices = resources$choices$fn_plot),
+      selectInput("plot", "Plot engine", choices = res$choices$fn_plot),
       textAreaInput(
-        "plot_arguments",
-        "Arguments", value = "",rows = 5
+        "plot_arguments", "Arguments", value = "",rows = 5,
+        placeholder = res$placeholder$plot_arguments
       ),
       actionButton("plot_help", "Open help"),
       hr(),
