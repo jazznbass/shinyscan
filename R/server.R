@@ -41,8 +41,15 @@ server <- function(input, output, session) {
       new <- read_scdf(input$upload$datapath)
       #syntax <- paste0("scdf <- read_scdf(\"", input$upload$name, "\")")
     }
-    my_scdf(new)
-    scdf_render()
+
+    if (!inherits(new, "scdf")) {
+      output$scdf_summary <- renderText(
+        "Sorry,\n the file you tried to upload is not a valid scdf file.")
+    } else {
+      my_scdf(new)
+      scdf_render()
+    }
+
   })
 
   output$scdf_save <- downloadHandler(
@@ -51,6 +58,7 @@ server <- function(input, output, session) {
   )
 
   # scdf: new cases --------
+
   observeEvent(input$add_case, {
     tryCatch({
       values <- paste0("c(", trim(input$values), ")")
@@ -59,30 +67,36 @@ server <- function(input, output, session) {
         dvar <- scdf_attr(my_scdf(), "var.values")
       }
 
-      if (input$mt == "") {
-        call <- paste0(
-          "scdf(", dvar, " = ", values,
-          ", dvar = ", deparse(dvar),
-          ", name = ",
-          deparse(input$casename), ")"
-        )
-      } else {
-        call <- paste0(
-          "scdf(", dvar, " = ", values,
-          ", mt = ", deparse(mt),
-          ", dvar = ", deparse(dvar),
-          ", name = ", deparse(input$casename), ")"
-        )
+      call <- paste0(dvar, " = ", values)
+      call <- c(call, paste0("dvar = ", deparse(dvar)))
+      if (input$mt != "") call <- c(call, paste0("mt = ", deparse(mt)))
+
+      if (input$variables != "") {
+        variables <- input$variables |>
+          strsplit("\n")  |>
+          unlist() |>
+          lapply(function(y) strsplit(y, "=")) |>
+          unlist(recursive = FALSE) |>
+          lapply(function(y) paste0(y[1], " =c(", y[2], ")")) |>
+          unlist()
+        call <- c(call, variables)
       }
+
+      if (input$casename != "")
+        call <- c(call, paste0("name = ", deparse(input$casename)))
+
+      call <- paste0(call, collapse = ",")
+      call <- paste0("scdf(", call, ")")
+
       new <- call |> str2lang() |> eval()
       if (length(my_scdf()) > 0) new <- c(my_scdf(), new)
       my_scdf(new)
       scdf_render()
-      },
-      error = function(e)
-        output$scdf_summary <- renderText(
-          paste0(res$error_msg$invalid_case, "\n\n", e)
-        )
+    },
+    error = function(e)
+      output$scdf_summary <- renderText(
+        paste0(res$error_msg$invalid_case, "\n\n", e)
+      )
     )
   })
 
@@ -336,6 +350,14 @@ server <- function(input, output, session) {
       str2lang(call) |> eval(),
       error = function(x)
         output$plot_syntax <- renderText(paste0(res$error_msg$plot, "\n\n", x))
+    )
+  })
+
+
+  observeEvent(input$scplot_examples, {
+    id <- which(names(res$choices$scplot_examples) == input$scplot_examples)
+    updateTextAreaInput(
+      inputId = "plot_arguments", value = unname(res$choices$scplot_examples[id])
     )
   })
 

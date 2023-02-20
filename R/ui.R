@@ -10,16 +10,23 @@ tab_scdf <-   tabPanel(
       textAreaInput(
         "values", "Values", placeholder = "A = 1,2,3,4,3, \nB = 7,6,7,8,7,6"
       ),
-      textInput("mt", "Measurement times", placeholder = "(optional)"),
-      textInput("casename", "Case name", placeholder = "Example case"),
+      textInput("mt", "Measurement times", placeholder = res$placeholder$mt),
+      textAreaInput(
+        "variables", "Additional variables",
+        placeholder = res$placeholder$variables
+      ),
+      textInput("casename", "Case name", placeholder = "(optional)"),
       actionButton("add_case", "Add"),
       actionButton("remove_case", "Remove last"),
       actionButton("remove_all", "Remove all"),
       hr(),
-      fileInput("upload", NULL, accept = c(".csv", ".rds", ".xlsx", "xls"),
-                buttonLabel = "Load file"),
-      downloadButton("scdf_save", "Save"),
-      hr(),
+      div(style="display:inline-block; vertical-align: top",
+          downloadButton("scdf_save", "Save")
+      ),
+      div(style="display:inline-block; vertical-align: top; padding-left: 20px;",
+        fileInput("upload", NULL, accept = c(".csv", ".rds", ".xlsx", "xls"),
+                buttonLabel = "Load file")
+      ),
       selectInput(
         "scdf_example", "Load example", choices = res$choices$examples
       ),
@@ -126,12 +133,14 @@ tab_plot <- tabPanel(
         "plot_arguments", "Arguments", value = "",rows = 5,
         placeholder = res$placeholder$plot_arguments
       ),
-      actionButton("plot_help", "Open help"),
-      hr(),
+      selectInput("scplot_examples", "sclot examples",
+                  choices = names(res$choices$scplot_examples)
+      ),
+      actionButton("plot_help", "Open help", inline = TRUE),
+      downloadButton("saveplot", "Save plot", inline = TRUE),
       numericInput("width", "Width", value = 800, min = 100, max = 2000),
       numericInput("height", "Height", value = 600, min = 100, max = 2000),
-      numericInput("dpi", "Dpi", value = 100, min = 50, max = 600),
-      downloadButton("saveplot", "Save plot"),
+      numericInput("dpi", "Dpi", value = 100, min = 50, max = 600)
     ),
     mainPanel(
       verbatimTextOutput("plot_syntax"),
@@ -145,7 +154,6 @@ tab_plot <- tabPanel(
 tab_help <- tabPanel(
   "Help",
   htmltools::includeMarkdown(res$help_page)
-  #htmltools::includeMarkdown("help_page.md")
 )
 
 

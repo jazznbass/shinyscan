@@ -1,12 +1,50 @@
-library(scan)
 library(scplot)
 library(shiny)
 library(shinyjs)
+library(htmltools)
+library(markdown)
+
+
+.onAttach <- function(lib, pkg, ...) {
+  cat("Type 'shinyscan()' to start.\n\n")
+}
+
+.onAttach()
 
 res <- list()
 
 res$choices <- list()
 res$choices$examples <- c("(none)", substr(data(package = "scan")$results[,3], 0, nchar(data(package = "scan")$results[,3]) - 12))
+
+res$choices$scplot_examples <- c(
+"(none)" = "",
+
+"Trend lines" =
+'add_statline("trend", color = "darkred", width = 2)
+add_statline("trendA", color = "darkblue", width = 2, linetype = "dashed")',
+
+"Lines" = 'add_statline("mean", color = "darkred")
+add_statline("max", color = "darkblue", linetype = "dashed")
+add_statline("min", color = "brown", linetype = "dashed")',
+
+"Lines 2" = 'add_statline("mean", phase = "A", color = "darkred")
+add_statline("max", phase = c("B", "C"), color = "darkblue", linetype = "dashed")
+add_statline("min", phase = c(2, 3), color = "orange", linetype = "dashed")',
+
+"Background", 'set_background(fill = "grey90", color = "black", size = 2',
+
+"Theme minimal" = 'add_theme("minimal")',
+
+"Theme basic" = 'add_theme("basic")',
+
+"Labels" = 'add_title("A new plot", color = "darkblue", size = 1.3)
+add_caption("Note. What a nice plot!", face = "italic", colour = "darkred")
+set_ylabel("Score", color = "darkred", angle = 0)
+set_xlabel("Session", color = "darkred")
+set_casenames(position = "strip", background = list(fill = "lightblue"))'
+)
+
+
 
 res$choices$fn_stats <- c(
   "describe", "smd", "overlap", "trend", "autocorr", "cdc", "plm", "hplm",
@@ -30,6 +68,12 @@ style = "sienna"
 lines = list("loreg", f = 0.2, lty = "solid", col = "black", lwd = 3)
 '
 
+res$placeholder$mt <- "(optional, e.g. 1,2,4,6,7,8,9,12,13)"
+
+res$placeholder$variables <-
+"(optional, e.g., depression = 1,4,3,5,6,5,7
+separate multiple variables with linebreaks)"
+
 res$error_msg$invalid_case <- "Sorry!
 The last case you tried to add didn't have a valid case definition."
 
@@ -50,10 +94,10 @@ You can:
 
 The basic procedure is:
 
-1. *Choose or create* a single case file in the 'scdf' tab.
-2. Optionally *refine* the case in the 'Transform' tab (select cases, recombine phases, etc.)
-3. *Analyse* the data in the 'Stats' tab.
-4. Create a *plot* in the 'Plot' tab.
+1. Choose or create an scdf (Single Case Data Frame) in the 'scdf' tab.
+2. Optionally refine the scdf in the 'Transform' tab (e.g. select cases, recombine phases)
+3. Analyse the data in the 'Stats' tab.
+4. Create a plot in the 'Plot' tab.
 
 Look at the 'Help' tab for more information.
 
@@ -76,7 +120,7 @@ Please define a case on the 'scdf' tab first.
 res$help_page <- "
 #### Welcome to ***shiny scan***!
 
-*Shiny-scan* is a graphical surface for the *scan* (Single-Case Data Analysis). *scan* is an R package.
+*Shiny-scan* is a graphical surface for *scan* (Single-Case Data Analysis). *scan* is an R package.
 
 The basic procedure is:
 

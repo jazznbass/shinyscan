@@ -8,7 +8,9 @@
 #' @author Juergen Wilbert [aut, cre]
 #' @keywords package
 #' @import shiny
-#' @import shinyjs
 #' @import scan
 #' @import scplot
+#' @import shinythemes
+#' @import shinyjs
+#' @import htmltools
 NULL
