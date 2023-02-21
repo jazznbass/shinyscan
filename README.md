@@ -26,7 +26,7 @@ devtools::install_github("jazznbass/shinyscan")
 shinyscan::shinyscan()
 ````
 
-If you get errors, look if a specific package is missing/ not found and try to install the missing package with `install.packages("the-missing-one")`.
+If you get errors, look if a specific package is missing/ not found and try to install the missing package with `install.packages("[name-of-the-missing-package]")`.
 
 ## Finding help
 
