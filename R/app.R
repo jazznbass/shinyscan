@@ -1,0 +1,2 @@
+
+shinyAppDir("R")
