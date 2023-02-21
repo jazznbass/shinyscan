@@ -1,5 +1,5 @@
 
 #' @export
 shinyscan <- function() {
-  shinyApp(ui = ui, server = server, options = "launch.browser")
+  runApp(list(ui = ui, server = server), launch.browser = TRUE)
 }
