@@ -183,11 +183,6 @@ ui <- navbarPage(
   title = "Shiny scan",
   theme = shinythemes::shinytheme("cerulean"),
   #header = shinythemes::themeSelector(),
-  tags$header(tags$style("#funcargs{
-                         font-size: 16px;
-                         font-style: italic;
-                         }"
-  )),
   tab_scdf,
   tab_transform,
   tab_stats,
