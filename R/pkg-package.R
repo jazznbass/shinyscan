@@ -10,7 +10,7 @@
 #' @import shiny
 #' @import scan
 #' @import scplot
-#' @import shinythemes
-#' @import shinyjs
-#' @import htmltools
+#' @importFrom shinythemes shinytheme
+#' @importFrom shinyjs js useShinyjs extendShinyjs
+#' @importFrom htmltools includeMarkdown
 NULL

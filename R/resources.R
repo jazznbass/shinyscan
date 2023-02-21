@@ -1,8 +1,10 @@
-library(scplot)
-library(shiny)
-library(shinyjs)
-library(htmltools)
-library(markdown)
+suppressPackageStartupMessages({
+  library(scplot)
+  library(shiny)
+  library(shinyjs)
+  library(htmltools)
+  library(markdown)
+})
 
 
 .onAttach <- function(lib, pkg, ...) {
@@ -44,12 +46,24 @@ set_xlabel("Session", color = "darkred")
 set_casenames(position = "strip", background = list(fill = "lightblue"))'
 )
 
-
-
 res$choices$fn_stats <- c(
-  "describe", "smd", "overlap", "trend", "autocorr", "cdc", "plm", "hplm",
-  "tau_u", "corrected_tau", "pnd", "pem", "pet", "pand", "nap",
-  "rand_test", "outlier"
+  "Descriptives" = "describe",
+  "Standardized mean differences" = "smd",
+  "Overlap indices" = "overlap",
+  "Data trends" = "trend",
+  "Auto correlations" = "autocorr",
+   "Conservative Dual-Criterion Method" = "cdc",
+  "Piecewise regression" = "plm",
+  "Hierarchical piecewise regression" = "hplm",
+  "Tau U" = "tau_u",
+  "Baseline corrected tau" = "corrected_tau",
+  "Percentage of non-overlapping data" =  "pnd",
+  "Percent exceeding the median" = "pem",
+  "Percent exceeding the trend" = "pet",
+  "Percentage of all non-overlapping data" = "pand",
+  "Nonoverlap of all Pairs" = "nap",
+  "Randomization test" = "rand_test",
+  "Outlier analysis" = "outlier"
 )
 
 res$choices$fn_plot <- c("scplot" = "scplot", "plot" = "plot.scdf")
@@ -135,11 +149,15 @@ You have two plot engines to choose from. scplot is much more powerful.
 
 Here are helpful links:
 
+[How to install shinyscan on your computer](https://github.com/jazznbass/shinyscan#readme)
+
 [Help pages for scan](https://jazznbass.github.io/scan/)
 
 [Online book for single case analysis with scan](https://jazznbass.github.io/scan-Book/)
 
 [Help pages for scplot](https://jazznbass.github.io/scplot/)
+
+
 
 Have fun!
 "
