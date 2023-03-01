@@ -23,9 +23,12 @@ tab_scdf <-   tabPanel(
       div(style="display:inline-block; vertical-align: top",
           downloadButton("scdf_save", "Save")
       ),
-      div(style="display:inline-block; vertical-align: top; padding-left: 20px;",
-        fileInput("upload", NULL, accept = c(".csv", ".rds", ".xlsx", "xls"),
-                buttonLabel = "Load file")
+      div(
+        style="display:inline-block; vertical-align: top; padding-left: 20px;",
+        fileInput(
+          "upload", NULL, accept = c(".csv", ".rds", ".xlsx", "xls"),
+           buttonLabel = "Load file"
+        )
       ),
       selectInput(
         "scdf_example", "Load example", choices = res$choices$examples
@@ -87,7 +90,8 @@ tab_stats <- tabPanel(
         choices = res$choices$fn_stats
       ),
       radioButtons(
-        "stats_default", "Show defaults", choices = c("No", "Yes"), inline = TRUE
+        "stats_default", "Show defaults", choices = c("No", "Yes"),
+        inline = TRUE
       ),
 
       uiOutput("stats_arguments"),
@@ -95,13 +99,15 @@ tab_stats <- tabPanel(
       actionButton("stats_help", "Open help")
     ),
     mainPanel(
-
-      div(style="display:inline-block; vertical-align: top",
+      div(
+        style="display:inline-block; vertical-align: top",
         radioButtons(
-          "stats_out", "Output format", c("Text", "Html"), "Text", inline = TRUE
+          "stats_out", "Output format", c("Text", "Html"), "Text",
+          inline = TRUE
         )
       ),
-      div(style="display:inline-block; vertical-align: top; padding-left: 30px;",
+      div(
+        style="display:inline-block; vertical-align: top; padding-left: 30px;",
         textInput(
           "stats_print_arguments", "Output arguments",
           placeholder = "e.g.: flip = TRUE; digits = 2; meta = FALSE"
@@ -133,7 +139,7 @@ tab_plot <- tabPanel(
         "plot_arguments", "Arguments", value = "",rows = 5,
         placeholder = res$placeholder$plot_arguments
       ),
-      selectInput("scplot_examples", "sclot examples",
+      selectInput("scplot_examples", "sclot templates", multiple = TRUE,
                   choices = names(res$choices$scplot_examples)
       ),
       actionButton("plot_help", "Open help", inline = TRUE),

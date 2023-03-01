@@ -355,11 +355,20 @@ server <- function(input, output, session) {
 
 
   observeEvent(input$scplot_examples, {
-    id <- which(names(res$choices$scplot_examples) == input$scplot_examples)
-    updateTextAreaInput(
-      inputId = "plot_arguments", value = unname(res$choices$scplot_examples[id])
-    )
+    selects <- input$scplot_examples
+    id <- which(names(res$choices$scplot_examples) %in% selects)
+    values <- paste0(unname(res$choices$scplot_examples[id]), collapse = "\n")
+    if (length(id) == 0) values <- ""
+    if ("(empty selection)" %in% selects) {
+      values <- ""
+      updateSelectInput(
+        inputId = "scplot_examples", selected = ""
+      )
+    }
+    updateTextAreaInput(inputId = "plot_arguments", value = values)
   })
+
+  observeEvent(input$plot_arguments, render_plot_syntax())
 
   output$plot_scdf <- renderPlot({
     render_plot()
@@ -386,7 +395,7 @@ server <- function(input, output, session) {
     }
   )
 
-  output$plot_syntax <- renderPrint({
+  render_plot_syntax <- reactive({
     if (input$plot == "scplot") {
       call <- paste0("scplot(scdf)")
       if (trimws(input$plot_arguments) != "") {
@@ -401,8 +410,13 @@ server <- function(input, output, session) {
         call <- "plot(scdf)"
       }
     }
-    cat(call)
+    output$plot_syntax <- renderPrint({
+      cat(call)
+    })
+
   })
+
+
 
 
 }

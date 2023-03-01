@@ -6,7 +6,8 @@
 \alias{shinyscan}
 \title{Shiny scan}
 \description{
-A collection of procedures for analysing, visualising, and managing single-case data.
+A collection of procedures for analyzing, visualizing, and managing
+single-case data.
 }
 \author{
 Juergen Wilbert [aut, cre]

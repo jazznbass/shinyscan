@@ -1,6 +1,7 @@
 #' Shiny scan
 #'
-#' A collection of procedures for analysing, visualising, and managing single-case data.
+#' A collection of procedures for analyzing, visualizing, and managing
+#' single-case data.
 #'
 #' @name shinyscan-package
 #' @aliases shinyscan-package shinyscan
